@@ -44,13 +44,19 @@ public class CnBlogsCrawler implements PageProcessor {
      */
     private final String blog_prefix;
 
+    //已经爬取的博文数量
+    private int crawedCount = 0;
+
+    //最大爬取博文数量；
+    private int maxCount = 20;
+
 
     public CnBlogsCrawler(Site site, String bloggerId){
         this.site = site;
         this.bloggerId = bloggerId;
-        //https://www.cnblogs.com/tencent-cloud-native/default.html?page=1
+        //https://www.cnblogs.com/tencent-cloud-native?page=1
         //https://www.cnblogs.com/tencent-cloud-native/p/14913423.html
-        this.list_prefix = String.format("https://www.cnblogs.com/%s/default.html", bloggerId);
+        this.list_prefix = String.format("https://www.cnblogs.com/%s?", bloggerId);
         this.blog_prefix = String.format("https://www.cnblogs.com/%s/p/", bloggerId);
     }
 
@@ -60,15 +66,8 @@ public class CnBlogsCrawler implements PageProcessor {
     public void process(Page page) {
         //url里存储的是请求页面的URL地址
         String url = page.getRequest().getUrl();
-        if(url.startsWith(list_prefix)){
-            log.info("解析博客目录页[{}]", url);
-            List<String> blogs = page.getHtml().xpath("//div[@class='forFlow']//div[@class='postTitle']/a/@href").all();
-            log.info("获取博文内容页地址[{}]条", blogs.size());
-            page.addTargetRequests(blogs);
-            //TODO 请大家思考如何添加其他博客目录页的地址?需要解析博客目录页最底部的导航栏
-            //setSkip方法可以跳过后续的Pipeline的处理
-            page.setSkip(true);
-        }else if(url.startsWith(blog_prefix)){
+        if(url.startsWith(blog_prefix)){
+
             log.info("解析博客内容页[{}]", url);
             //博文的ID，设置为页面URL删去前缀和 .html后缀后的字符串
             String id = url.replace(blog_prefix, "").replace(".html", "");
@@ -91,6 +90,8 @@ public class CnBlogsCrawler implements PageProcessor {
                 if(blogStats!=null&&blogStats.size()>0){
                     log.info("成功获取博文[{}]的阅读数等信息:[{}]", id, json);
                     blog.setBlogStats(blogStats.get(0));
+                    crawedCount++;
+                    log.info("已爬取[{}]", crawedCount);
                 }
             }
             try {
@@ -101,9 +102,42 @@ public class CnBlogsCrawler implements PageProcessor {
                 blog.setDate(0);
             }
             page.putField(RESULT_ITEM_KEY, blog);
+        }else if(url.startsWith(list_prefix)){
+            log.info("解析博客目录页[{}]", url);
+            List<String> blogs = page.getHtml().xpath("//div[@class='forFlow']//div[@class='postTitle']/a/@href").all();
+            page.addTargetRequests(blogs);
+            List<String> pages = page.getHtml().xpath("//div[@class='pager']/a/@href").all();
+            int currentPage = currentPage(url);
+            log.info("第[{}]页，内含博文[{}]条", currentPage, blogs.size());
+            //按顺序爬取导航链接
+            pages.removeIf(p -> currentPage(p) != currentPage + 1);
+            log.info("获取分页链接[{}]条", pages.size());
+            page.addTargetRequests(pages);
+            //setSkip方法可以跳过后续的Pipeline的处理
+            page.setSkip(true);
         }else{
             log.warn("暂不支持的URL地址:[{}]", url);
             page.setSkip(true);
+        }
+    }
+
+    /**
+     * 从URL中提取页码，若无page参数则返回第1页
+     */
+    private static int currentPage(String url) {
+        int idx = url.indexOf("page=");
+        if (idx < 0) {
+            return 1;
+        }
+        String page = url.substring(idx + 5);
+        int amp = page.indexOf('&');
+        if (amp > 0) {
+            page = page.substring(0, amp);
+        }
+        try {
+            return Integer.parseInt(page);
+        } catch (NumberFormatException e) {
+            return 1;
         }
     }
 

@@ -47,7 +47,7 @@ public class CrawlerService{
             log.error("博主的唯一ID不可以为空");
             return;
         }
-        String startPage = String.format("https://www.cnblogs.com/%s/default.html?page=2", blogger);
+        String startPage = String.format("https://www.cnblogs.com/tencent-cloud-native?page=1", blogger);
         if(this.spider != null){
             if(!Stopped.equals(this.spider.getStatus())){
                 //如果spider成员不为空，并且状态不是 Stopped，则不可以启动新的爬虫

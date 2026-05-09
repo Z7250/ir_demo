@@ -1,6 +1,7 @@
 package cn.edu.bistu.cs.ir.index;
 
-import cn.edu.bistu.cs.ir.crawler.SinaBlogCrawler;
+import cn.edu.bistu.cs.ir.crawler.CnBlogsCrawler;
+//import cn.edu.bistu.cs.ir.crawler.SinaBlogCrawler;
 import cn.edu.bistu.cs.ir.model.Blog;
 import org.apache.lucene.document.*;
 import org.slf4j.Logger;
@@ -26,7 +27,7 @@ public class LucenePipeline implements Pipeline {
 
     @Override
     public void process(ResultItems resultItems, Task task) {
-        Blog blog = resultItems.get(SinaBlogCrawler.RESULT_ITEM_KEY);
+        Blog blog = resultItems.get(CnBlogsCrawler.RESULT_ITEM_KEY);
         if(blog==null){
             log.error("无法从爬取的结果中提取到Blog对象");
             return;
