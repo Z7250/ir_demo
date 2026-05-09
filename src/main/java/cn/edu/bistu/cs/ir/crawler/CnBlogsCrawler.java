@@ -68,6 +68,11 @@ public class CnBlogsCrawler implements PageProcessor {
         String url = page.getRequest().getUrl();
         if(url.startsWith(blog_prefix)){
 
+            if(crawedCount >= maxCount){
+                log.info("已爬取[{}]，达到最大爬取数[{}]，跳过当前博文", crawedCount, maxCount);
+                page.setSkip(true);
+                return;
+            }
             log.info("解析博客内容页[{}]", url);
             //博文的ID，设置为页面URL删去前缀和 .html后缀后的字符串
             String id = url.replace(blog_prefix, "").replace(".html", "");
@@ -103,17 +108,23 @@ public class CnBlogsCrawler implements PageProcessor {
             }
             page.putField(RESULT_ITEM_KEY, blog);
         }else if(url.startsWith(list_prefix)){
+            if(crawedCount >= maxCount){
+                log.info("已爬取[{}]，达到最大爬取数[{}]，停止爬取", crawedCount, maxCount);
+                page.setSkip(true);
+                return;
+            }
             log.info("解析博客目录页[{}]", url);
             List<String> blogs = page.getHtml().xpath("//div[@class='forFlow']//div[@class='postTitle']/a/@href").all();
             page.addTargetRequests(blogs);
-            List<String> pages = page.getHtml().xpath("//div[@class='pager']/a/@href").all();
             int currentPage = currentPage(url);
             log.info("第[{}]页，内含博文[{}]条", currentPage, blogs.size());
-            //按顺序爬取导航链接
-            pages.removeIf(p -> currentPage(p) != currentPage + 1);
-            log.info("获取分页链接[{}]条", pages.size());
-            page.addTargetRequests(pages);
-            //setSkip方法可以跳过后续的Pipeline的处理
+            //仅在未达上限时添加下一页
+            if(crawedCount + blogs.size() < maxCount){
+                List<String> pages = page.getHtml().xpath("//div[@class='pager']/a/@href").all();
+                pages.removeIf(p -> currentPage(p) != currentPage + 1);
+                log.info("获取分页链接[{}]条", pages.size());
+                page.addTargetRequests(pages);
+            }
             page.setSkip(true);
         }else{
             log.warn("暂不支持的URL地址:[{}]", url);
