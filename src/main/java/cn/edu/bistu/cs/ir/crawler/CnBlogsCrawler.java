@@ -78,13 +78,21 @@ public class CnBlogsCrawler implements PageProcessor {
             String id = url.replace(blog_prefix, "").replace(".html", "");
             String title = page.getHtml().xpath("//div[@class='post']/h1[@class='postTitle']//span/text()").get();
             String time = page.getHtml().xpath("//div[@class='postDesc']/span[@id='post-date']/text()").get();
+            String view = page.getHtml().xpath("//div[@class='postDesc']/span[@id='post_view_count']/text()").get();
+            String comment = page.getHtml().xpath("//div[@class='postDesc']/span[@id='post_comment_count']/text()").get();
             String content = page.getHtml().xpath("//div[@class='post']//div[@id='cnblogs_post_body']/allText()").get();
-            //TODO 请大家思考如何抓取页面中的标签、阅读数、评论数等数据?
             Blog blog = new Blog();
             blog.setId(id);
             blog.setTitle(title);
             blog.setContent(content);
             blog.setAuthor(bloggerId);
+            try {
+                blog.setView(Integer.parseInt(view.replaceAll("\\D", "")));
+                blog.setComment(Integer.parseInt(comment.replaceAll("\\D", "")));
+            } catch (NumberFormatException e) {
+                log.warn("无法解析: view=[{}], comment=[{}]", view, comment);
+            }
+
             HttpUtils httpUtils = new HttpUtils();
             String json = httpUtils.postJson(
                     String.format("https://www.cnblogs.com/%s/ajax/GetPostStat", bloggerId),
@@ -95,8 +103,22 @@ public class CnBlogsCrawler implements PageProcessor {
                 if(blogStats!=null&&blogStats.size()>0){
                     log.info("成功获取博文[{}]的阅读数等信息:[{}]", id, json);
                     blog.setBlogStats(blogStats.get(0));
-                    crawedCount++;
-                    log.info("已爬取[{}]", crawedCount);
+
+                }
+            }
+            // 通过AJAX接口获取推荐数和反对数
+            String accessoriesJson = httpUtils.getPage(
+                    String.format("https://www.cnblogs.com/%s/ajax/post-accessories?postId=%s", bloggerId, id),
+                    null);
+            if(!StringUtil.isEmpty(accessoriesJson)){
+                JSONObject accessoriesObj = JSONObject.parseObject(accessoriesJson);
+                if(accessoriesObj != null){
+                    JSONObject postStats = accessoriesObj.getJSONObject("postStats");
+                    if(postStats != null){
+                        blog.setDigg(postStats.getIntValue("diggCount"));
+                        blog.setBury(postStats.getIntValue("buryCount"));
+                        //log.info("11111111111111");
+                    }
                 }
             }
             try {
@@ -107,6 +129,8 @@ public class CnBlogsCrawler implements PageProcessor {
                 blog.setDate(0);
             }
             page.putField(RESULT_ITEM_KEY, blog);
+            crawedCount++;
+            log.info("已爬取[{}]", crawedCount);
         }else if(url.startsWith(list_prefix)){
             if(crawedCount >= maxCount){
                 log.info("已爬取[{}]，达到最大爬取数[{}]，停止爬取", crawedCount, maxCount);

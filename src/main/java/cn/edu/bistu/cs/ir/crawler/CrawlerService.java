@@ -48,6 +48,8 @@ public class CrawlerService{
             return;
         }
         String startPage = String.format("https://www.cnblogs.com/tencent-cloud-native?page=1", blogger);
+        //String startPage = String.format("https://www.cnblogs.com/tencent-cloud-native/p/15745107.html", blogger);
+        
         if(this.spider != null){
             if(!Stopped.equals(this.spider.getStatus())){
                 //如果spider成员不为空，并且状态不是 Stopped，则不可以启动新的爬虫

@@ -43,6 +43,18 @@ public class Blog {
      */
     private List<String> tags;
 
+    //阅读数
+    private int view;
+
+    //评论数
+    private int comment;
+
+    //推荐数
+    private int digg;
+
+    //反对数
+    private int bury;
+
     /**
      * 动态获取的博文信息
      */
