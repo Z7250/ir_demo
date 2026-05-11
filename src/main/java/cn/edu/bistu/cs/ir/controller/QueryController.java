@@ -46,14 +46,12 @@ public class QueryController {
                                                                     @RequestParam(name = "pageNo", defaultValue = "1") int pageNo,
                                                                     @RequestParam(name = "pageSize", defaultValue = "10") int pageSize){
         try {
-            //TODO 请大家思考如何在queryByKw函数中添加分页参数
             List<Document> docs = idxService.queryByKw(kw);
             List<Map<String, String>> results = new ArrayList<>();
             for(Document doc : docs){
                 Map<String, String> record = new HashMap<>(2);
                 record.put("ID", doc.get("ID"));
                 record.put("TITLE", doc.get("TITLE"));
-                record.put("TIME", doc.get("TIME_STORE"));
                 results.add(record);
             }
             return QueryResponse.genSucc("检索成功", results);

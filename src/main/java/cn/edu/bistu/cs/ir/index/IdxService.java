@@ -96,9 +96,6 @@ public class IdxService implements DisposableBean {
         return results;
     }
 
-    //TODO 请大家在这里添加更多的检索函数，如针对发表时间的范围检索等，
-    // 添加了检索函数后，还需要相应地在Controller中添加接口
-
     /**
      * 使用BooleanQuery对标题和内容字段进行联合检索
      * @param kw 待检索的关键词

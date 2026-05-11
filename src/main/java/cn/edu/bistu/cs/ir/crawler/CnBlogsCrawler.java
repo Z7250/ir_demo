@@ -79,14 +79,14 @@ public class CnBlogsCrawler implements PageProcessor {
             String title = page.getHtml().xpath("//div[@class='post']/h1[@class='postTitle']//span/text()").get();
             String time = page.getHtml().xpath("//div[@class='postDesc']/span[@id='post-date']/text()").get();
             String content = page.getHtml().xpath("//div[@class='post']//div[@id='cnblogs_post_body']/allText()").get();
-            String keywords = page.getHtml().xpath("//meta[@name='keywords']/@content").get();
+            String tags = page.getHtml().xpath("//meta[@name='keywords']/@content").get();
             Blog blog = new Blog();
             blog.setId(id);
             blog.setTitle(title);
             blog.setContent(content);
             blog.setAuthor(bloggerId);
-            if(keywords != null && !keywords.isEmpty()){
-                blog.setTags(java.util.Arrays.asList(keywords.split(",")));
+            if(tags != null && !tags.isEmpty()){
+                blog.setTags(java.util.Arrays.asList(tags.split(",")));
                 //log.info("获取成功");
             }
 
