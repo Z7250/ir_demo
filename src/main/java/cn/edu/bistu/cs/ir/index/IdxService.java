@@ -9,6 +9,7 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
 import org.apache.lucene.store.Directory;
@@ -97,6 +98,65 @@ public class IdxService implements DisposableBean {
 
     //TODO 请大家在这里添加更多的检索函数，如针对发表时间的范围检索等，
     // 添加了检索函数后，还需要相应地在Controller中添加接口
+
+    /**
+     * 使用BooleanQuery对标题和内容字段进行联合检索
+     * @param kw 待检索的关键词
+     * @return 检索得到的文档列表
+     */
+    public List<Document> queryByTitleAndContent(String kw) throws Exception{
+        DirectoryReader reader = DirectoryReader.open(writer);
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Analyzer analyzer = DEFAULT_ANALYZER.getConstructor().newInstance();
+        QueryParser titleParser = new QueryParser("TITLE", analyzer);
+        QueryParser contentParser = new QueryParser("CONTENT", analyzer);
+        Query titleQuery = titleParser.parse(kw);
+        Query contentQuery = contentParser.parse(kw);
+        BooleanQuery.Builder builder = new BooleanQuery.Builder();
+        builder.add(titleQuery, BooleanClause.Occur.SHOULD);
+        builder.add(contentQuery, BooleanClause.Occur.SHOULD);
+        TopDocs docs = searcher.search(builder.build(), 10);
+        ScoreDoc[] hits = docs.scoreDocs;
+        List<Document> results = new ArrayList<>();
+        for (ScoreDoc doc : hits) {
+            results.add(searcher.doc(doc.doc));
+        }
+        reader.close();
+        return results;
+    }
+
+    /**
+     * 返回索引中包含的文档数
+     * @return 文档总数
+     */
+    public int getDocCount() throws IOException {
+        DirectoryReader reader = DirectoryReader.open(writer);
+        int count = reader.numDocs();
+        reader.close();
+        return count;
+    }
+
+    /**
+     * 使用MultiFieldQueryParser对标题和内容字段进行联合检索
+     * @param kw 待检索的关键词
+     * @return 检索得到的文档列表
+     */
+    public List<Document> queryByMultiField(String kw) throws Exception{
+        DirectoryReader reader = DirectoryReader.open(writer);
+        IndexSearcher searcher = new IndexSearcher(reader);
+        Analyzer analyzer = DEFAULT_ANALYZER.getConstructor().newInstance();
+        String[] fields = {"TITLE", "CONTENT"};
+        MultiFieldQueryParser parser = new MultiFieldQueryParser(fields, analyzer);
+        Query query = parser.parse(kw);
+        TopDocs docs = searcher.search(query, 10);
+        ScoreDoc[] hits = docs.scoreDocs;
+        List<Document> results = new ArrayList<>();
+        for (ScoreDoc doc : hits) {
+            results.add(searcher.doc(doc.doc));
+        }
+        reader.close();
+        return results;
+    }
 
 
     @Override

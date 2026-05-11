@@ -62,4 +62,66 @@ public class QueryController {
             return QueryResponse.genErr("检索过程中发生异常");
         }
     }
+
+    /**
+     * 使用BooleanQuery对标题和内容字段进行联合检索
+     * @param kw 待检索的关键词
+     * @return 检索结果
+     */
+    @GetMapping(value = "/kw2", produces = "application/json;charset=UTF-8")
+    public QueryResponse<List<Map<String, String>>> queryByTitleAndContent(@RequestParam(name = "kw") String kw){
+        try {
+            List<Document> docs = idxService.queryByTitleAndContent(kw);
+            List<Map<String, String>> results = new ArrayList<>();
+            for(Document doc : docs){
+                Map<String, String> record = new HashMap<>(2);
+                record.put("ID", doc.get("ID"));
+                record.put("TITLE", doc.get("TITLE"));
+                results.add(record);
+            }
+            return QueryResponse.genSucc("检索成功", results);
+        } catch (Exception e) {
+            log.error("检索过程中发生异常:[{}]", e.getMessage());
+            return QueryResponse.genErr("检索过程中发生异常");
+        }
+    }
+
+    /**
+     * 使用MultiFieldQueryParser对标题和内容字段进行联合检索
+     * @param kw 待检索的关键词
+     * @return 检索结果
+     */
+    @GetMapping(value = "/kw3", produces = "application/json;charset=UTF-8")
+    public QueryResponse<List<Map<String, String>>> queryByMultiField(@RequestParam(name = "kw") String kw){
+        try {
+            List<Document> docs = idxService.queryByMultiField(kw);
+            List<Map<String, String>> results = new ArrayList<>();
+            for(Document doc : docs){
+                Map<String, String> record = new HashMap<>(2);
+                record.put("ID", doc.get("ID"));
+                record.put("TITLE", doc.get("TITLE"));
+                results.add(record);
+            }
+            return QueryResponse.genSucc("检索成功", results);
+        } catch (Exception e) {
+            log.error("检索过程中发生异常:[{}]", e.getMessage());
+            return QueryResponse.genErr("检索过程中发生异常");
+        }
+    }
+
+
+    /**
+     * 返回索引中包含的文档总数
+     * @return 文档总数
+     */
+    @GetMapping(value = "/count", produces = "application/json;charset=UTF-8")
+    public QueryResponse<Integer> getDocCount(){
+        try {
+            int count = idxService.getDocCount();
+            return QueryResponse.genSucc("检索成功", count);
+        } catch (Exception e) {
+            log.error("获取文档数时发生异常:[{}]", e.getMessage());
+            return QueryResponse.genErr("获取文档数时发生异常");
+        }
+    }
 }

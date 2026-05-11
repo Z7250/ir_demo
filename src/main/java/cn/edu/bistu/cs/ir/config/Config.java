@@ -60,7 +60,7 @@ public class Config {
      * 是否在系统初始化完成后，启动爬虫的执行，
      * 默认为true
      */
-    private boolean startCrawler = true;
+    private boolean startCrawler = false;
 
 
     @PostConstruct

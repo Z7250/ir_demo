@@ -7,6 +7,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 public class IrDemoApplicationTest {
     @Test
     void contextLoads() {
-
+        System.out.println("aaaa");
     }
 }
