@@ -78,19 +78,16 @@ public class CnBlogsCrawler implements PageProcessor {
             String id = url.replace(blog_prefix, "").replace(".html", "");
             String title = page.getHtml().xpath("//div[@class='post']/h1[@class='postTitle']//span/text()").get();
             String time = page.getHtml().xpath("//div[@class='postDesc']/span[@id='post-date']/text()").get();
-            String view = page.getHtml().xpath("//div[@class='postDesc']/span[@id='post_view_count']/text()").get();
-            String comment = page.getHtml().xpath("//div[@class='postDesc']/span[@id='post_comment_count']/text()").get();
             String content = page.getHtml().xpath("//div[@class='post']//div[@id='cnblogs_post_body']/allText()").get();
+            String keywords = page.getHtml().xpath("//meta[@name='keywords']/@content").get();
             Blog blog = new Blog();
             blog.setId(id);
             blog.setTitle(title);
             blog.setContent(content);
             blog.setAuthor(bloggerId);
-            try {
-                blog.setView(Integer.parseInt(view.replaceAll("\\D", "")));
-                blog.setComment(Integer.parseInt(comment.replaceAll("\\D", "")));
-            } catch (NumberFormatException e) {
-                log.warn("无法解析: view=[{}], comment=[{}]", view, comment);
+            if(keywords != null && !keywords.isEmpty()){
+                blog.setTags(java.util.Arrays.asList(keywords.split(",")));
+                //log.info("获取成功");
             }
 
             HttpUtils httpUtils = new HttpUtils();
@@ -106,21 +103,6 @@ public class CnBlogsCrawler implements PageProcessor {
 
                 }
             }
-            // 通过AJAX接口获取推荐数和反对数
-            String accessoriesJson = httpUtils.getPage(
-                    String.format("https://www.cnblogs.com/%s/ajax/post-accessories?postId=%s", bloggerId, id),
-                    null);
-            if(!StringUtil.isEmpty(accessoriesJson)){
-                JSONObject accessoriesObj = JSONObject.parseObject(accessoriesJson);
-                if(accessoriesObj != null){
-                    JSONObject postStats = accessoriesObj.getJSONObject("postStats");
-                    if(postStats != null){
-                        blog.setDigg(postStats.getIntValue("diggCount"));
-                        blog.setBury(postStats.getIntValue("buryCount"));
-                        //log.info("11111111111111");
-                    }
-                }
-            }
             try {
                 blog.setDate(sdf.parse(time).getTime());
             } catch (ParseException e) {
@@ -130,7 +112,7 @@ public class CnBlogsCrawler implements PageProcessor {
             }
             page.putField(RESULT_ITEM_KEY, blog);
             crawedCount++;
-            log.info("已爬取[{}]", crawedCount);
+            log.info("已爬取[{}]/[{}]", crawedCount,maxCount);
         }else if(url.startsWith(list_prefix)){
             if(crawedCount >= maxCount){
                 log.info("已爬取[{}]，达到最大爬取数[{}]，停止爬取", crawedCount, maxCount);
@@ -145,6 +127,7 @@ public class CnBlogsCrawler implements PageProcessor {
             //仅在未达上限时添加下一页
             if(crawedCount + blogs.size() < maxCount){
                 List<String> pages = page.getHtml().xpath("//div[@class='pager']/a/@href").all();
+                //只添加下一页
                 pages.removeIf(p -> currentPage(p) != currentPage + 1);
                 log.info("获取分页链接[{}]条", pages.size());
                 page.addTargetRequests(pages);
